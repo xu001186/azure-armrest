@@ -48,15 +48,20 @@ module Azure
         #   mts = Azure::Armrest::Insights::MetricService.new(conf)
         #
         #   vm = vms.get('your_vm', 'your_resource_group')
-        #
-        #   filter = "name.value eq 'Percentage CPU' and startTime "
-        #   filter << "eq 2017-01-03 and endTime eq 2017-01-04"
+
+
+        #   Update By Yanan Xu @11/06/2019 - Filter format is changed for the metrics
+        #   start_time = DateTime.parse("2019-06-11 10:10:11")
+        #   end_time = DateTime.parse("2019-06-11 11:10:11")
+        #   filter = "metricnames=Percentage CPU"
+        #   filter << "&timespan=#{start_time.iso8601.gsub(/\+[0-9]*:[0-9]*/, "Z")}/#{end_time.iso8601.gsub(/\+[0-9]*:[0-9]*/, "Z")}"
         #
         #   definitions = mts.list_metrics(vm.id)
         #
+
         def list_metrics(resource, filter = nil)
           resource_id = resource.respond_to?(:id) ? resource.id : resource
-
+          api_version = '2018-01-01'
           url = File.join(
             configuration.environment.resource_url,
             resource_id,
@@ -64,13 +69,14 @@ module Azure
           )
 
           url << "?api-version=#{api_version}"
-          url << "&$filter=#{filter}" if filter
+          url << "&#{filter}" if filter
+
+          puts url
 
           response = rest_get(url)
 
           Azure::Armrest::ArmrestCollection.create_from_response(response, Azure::Armrest::Insights::Metric)
         end
-
         # Get a list of metrics definitions for +resource_id+, which can be
         # either a resource object or a plain resource string. You may also
         # provide a +filter+ to limit the results.
@@ -89,10 +95,11 @@ module Azure
         #   definitions = mts.list_definitions(vm.id)
         #   definitions = mts.list_definitions(vm.id, "name.value eq 'Percentage CPU'")
         #
-        def list_definitions(resource, filter = nil)
+        # Update By Yanan Xu @11/06/2019 - Filter doesn't work for metricDefinitions
+        def list_definitions(resource)
           resource_id = resource.respond_to?(:id) ? resource.id : resource
-          version = configuration.provider_default_api_version(provider, 'metricDefinitions')
-
+          #version = configuration.provider_default_api_version(provider, 'metricDefinitions')
+          version = '2018-01-01'
           url = File.join(
             configuration.environment.resource_url,
             resource_id,
@@ -100,7 +107,7 @@ module Azure
           )
 
           url << "?api-version=#{version}"
-          url << "&$filter=#{filter}" if filter
+          # url << "&$filter=#{filter}" if filter
 
           response = rest_get(url)
 
